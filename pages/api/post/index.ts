@@ -1,42 +1,22 @@
-// pages/api/post/index.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import prisma from '../../../lib/prisma';
 
 // POST /api/post
-// Required body fields: title
-// Optional body fields: content
-export default async function handle(
-    req: NextApiRequest,
-    res: NextApiResponse
-) {
-    // 1. Allow only POST
-    if (req.method !== 'POST') {
-        res.setHeader('Allow', ['POST']);
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
-    }
-
+// Required fields in body: title
+// Optional fields in body: content
+export default async function handle(req, res) {
     const { title, content } = req.body;
 
-    try {
-        // 2. Authenticate
-        const session = await getSession({ req });
-        if (!session) {
-            return res.status(401).json({ message: 'Unauthenticated' });
-        }
+    const session = await getSession({ req });
+    console.log('[api/post] session =', session);
+    console.log('[api/post] body =', { title, content });
 
-        // 3. Create the post
-        const result = await prisma.post.create({
-            data: {
-                title,
-                content,
-                author: { connect: { email: session.user!.email! } },
-            },
-        });
-
-        return res.status(200).json(result);
-    } catch (error) {
-        console.error('[api/post] create error:', error);
-        return res.status(500).json({ message: 'Something went wrong' });
-    }
+    const result = await prisma.post.create({
+        data: {
+            title: title,
+            content: content,
+            author: { connect: { email: session?.user?.email } },
+        },
+    });
+    res.json(result);
 }
